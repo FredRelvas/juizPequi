@@ -3,6 +3,7 @@ from field import SSLRenderField
 from ball import Ball
 from robot import SSLRobot
 from utils import COLORS
+from game_logic import get_ball_possession, update_last_touch
 
 # Inicialização do pygame
 pygame.init()
@@ -17,14 +18,14 @@ clock = pygame.time.Clock()
 scale = field.scale
 
 # Definir limites do campo para os robôs
-min_x = scale * SSLRenderField.margin  # LINHAS DE FUNDO
-max_x = field.screen_width - scale * SSLRenderField.margin # LINHAS DE FUNDO
-min_y = scale * SSLRenderField.margin  # LATERAIS
-max_y = field.screen_height - scale * SSLRenderField.margin# LATERAIS
-robot_bounds = (min_x-25, max_x+25, min_y-25, max_y+25)
+min_x = scale * SSLRenderField.margin
+max_x = field.screen_width - scale * SSLRenderField.margin
+min_y = scale * SSLRenderField.margin
+max_y = field.screen_height - scale * SSLRenderField.margin
+robot_bounds = (min_x - 25, max_x + 25, min_y - 25, max_y + 25)
 
 # Limites bola
-ball_bounds = (min_x+10, max_x-10, min_y, max_y)
+ball_bounds = (min_x + 10, max_x - 10, min_y, max_y)
 
 # Inicializa bola
 ball = Ball(x=field.center_x, y=field.center_y, scale=scale)
@@ -43,7 +44,7 @@ robots += [
     SSLRobot(x=field.center_x + 1.5 * scale, y=field.center_y,         direction=180, scale=scale, id=1, team_color=COLORS["RED"]),
     SSLRobot(x=field.center_x + 1.5 * scale, y=field.center_y + scale, direction=180, scale=scale, id=2, team_color=COLORS["RED"]),
 ]
-controlled_robot = robots[0]  # Robô azul que será controlado com o teclado
+controlled_robot = robots[1]  # Robô azul que será controlado com o teclado
 # Velocidades de movimento
 speed = 1.5
 rotation_speed = 2
@@ -66,11 +67,32 @@ def is_goal(ball, field):
 
     return None
 
+# Quem tocou por último
+last_touch_info = (None, None)
+# Adicionado para evitar prints redundantes da posse de bola
+previous_possession_info = (None, None)
+# Adicionado para evitar prints redundantes do último toque
+previous_last_touch_info = (None, None)
+
+goal_posts_info = {
+    "LEFT": {
+        "x_min": field.margin - field.goal_depth,
+        "x_max": field.margin,
+        "y_min": (field.screen_height - field.goal_width) / 2,
+        "y_max": (field.screen_height - field.goal_width) / 2 + field.goal_width
+    },
+    "RIGHT": {
+        "x_min": field.screen_width - field.margin,
+        "x_max": field.screen_width - field.margin + field.goal_depth,
+        "y_min": (field.screen_height - field.goal_width) / 2,
+        "y_max": (field.screen_height - field.goal_width) / 2 + field.goal_width
+    }
+}
 
 # Loop principal
 running = True
 while running:
-    clock.tick(60)  # 60 FPS
+    clock.tick(60)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -93,66 +115,82 @@ while running:
     if keys[pygame.K_e]:
         vtheta += rotation_speed
 
-# Aplica movimento ao robô controlado
+    # Aplica movimento ao robô controlado
     controlled_robot.move(vx, vy, vtheta, bounds=robot_bounds)
-    
-    # Verifica se a bola saiu pelas laterais (parte superior ou inferior do campo)
+
+    # Verifica limites do campo para a bola
     if ball.y < min_y or ball.y > max_y:
         print("Lateral!")
-
-    # Reposiciona a bola na linha lateral (mantém y)
         ball.y = min_y if ball.y < min_y else max_y
+        ball.vx = 0
+        ball.vy = 0
 
-    
-    # Verifica se a bola saiu pelas linhas de fundo (parte direita ou esquerda do campo)
     if ball.x < min_x or ball.x > max_x:
         print("Linha de Fundo!")
-
-    # Define se saiu pela esquerda ou direita
         saiu_pela_esquerda = ball.x < min_x
-
-    # Define posição de recuo dentro da área de pênalti
         if saiu_pela_esquerda:
             ball.x = field.margin + field.penalty_length / 2
         else:
             ball.x = field.screen_width - field.margin - field.penalty_length / 2
-
-    # Centraliza verticalmente a bola dentro da área de pênalti
         ball.y = field.screen_height / 2
-
-    # Para a bola
         ball.vx = 0
         ball.vy = 0
 
+    # Lógica de posse de bola (antes do loop de robôs, se você quiser a posse atual)
+    current_possession_id, current_possession_team_color = get_ball_possession(ball, robots)
+    if (current_possession_id, current_possession_team_color) != previous_possession_info:
+        if current_possession_id is not None:
+            if current_possession_team_color == COLORS["BLUE"]:
+                print(f"Posse da bola: Time Azul, Robô ID: {current_possession_id}")
+            elif current_possession_team_color == COLORS["RED"]:
+                print(f"Posse da bola: Time Vermelho, Robô ID: {current_possession_id}")
+        else:
+            print("Posse da bola: Livre")
+        previous_possession_info = (current_possession_id, current_possession_team_color)
 
-    
 
     # Limpa tela e desenha campo
     field.draw(screen)
 
+    colliding_robot_this_frame = None # Variável para armazenar o robô que colidiu
     # Atualiza e desenha robôs
     for robo in robots:
         robo.draw(screen)
-        # Exemplo de movimento para testar
-        robo.move(vx=0, vy=0, vtheta=0.5)  # rotacionando devagar
+        # Exemplo de movimento para testar (apenas para robôs não controlados)
+        if robo != controlled_robot:
+            robo.move(vx=0, vy=0, vtheta=0.5)
 
         # Colisão com a bola
         if ball.check_collision(robo):
-            ball.bounce_off(robo)#, bounds=ball_bounds)
-        
-        ball.update()
+            # Se houve colisão, bounce_off retornará o robô
+            if ball.bounce_off(robo): # Chame bounce_off e verifique se retornou um robô
+                colliding_robot_this_frame = robo # Armazene o robô que colidiu
+
+    # Atualiza a física da bola UMA VEZ por frame, APÓS todas as colisões
+    ball.update()
+
+    # Atualiza o último toque, passando o robô que colidiu se houver
+    new_last_touch_info = update_last_touch(ball, robots, last_touch_info, goal_posts_info, collided_robot=colliding_robot_this_frame)
+    if new_last_touch_info != last_touch_info:
+        last_touch_info = new_last_touch_info
+        if last_touch_info[0] is not None:
+            if last_touch_info[1] == COLORS["BLUE"]:
+                print(f"Último toque: Time Azul, Robô ID: {last_touch_info[0]}")
+            elif last_touch_info[1] == COLORS["RED"]:
+                print(f"Último toque: Time Vermelho, Robô ID: {last_touch_info[0]}")
+        else:
+            print("Último toque: Nenhum (ou Trave)")
 
     goal_side = is_goal(ball, field)
     if goal_side:
         print(f"Gol do lado {goal_side}!")
-
-    # Reposiciona a bola no centro
         ball.x = field.center_x
         ball.y = field.center_y
         ball.vx = 0
         ball.vy = 0
-
-
+        previous_possession_info = (None, None)
+        last_touch_info = (None, None)
+        previous_last_touch_info = (None, None) # Certifique-se de resetar este também
 
     # Desenha bola
     ball.draw(screen)
@@ -160,3 +198,121 @@ while running:
     pygame.display.flip()
 
 pygame.quit()
+
+
+
+
+# CODIGO ANTIGO
+
+# # Loop principal
+# running = True
+# while running:
+#     clock.tick(60)
+
+#     for event in pygame.event.get():
+#         if event.type == pygame.QUIT:
+#             running = False
+
+#     # Leitura de teclas pressionadas
+#     keys = pygame.key.get_pressed()
+#     vx = vy = vtheta = 0
+
+#     if keys[pygame.K_w]:
+#         vy -= speed
+#     if keys[pygame.K_s]:
+#         vy += speed
+#     if keys[pygame.K_a]:
+#         vx -= speed
+#     if keys[pygame.K_d]:
+#         vx += speed
+#     if keys[pygame.K_q]:
+#         vtheta -= rotation_speed
+#     if keys[pygame.K_e]:
+#         vtheta += rotation_speed
+
+#     # Aplica movimento ao robô controlado
+#     controlled_robot.move(vx, vy, vtheta, bounds=robot_bounds)
+
+#     # Verifica se a bola saiu pelas laterais
+#     if ball.y < min_y or ball.y > max_y:
+#         print("Lateral!")
+#         ball.y = min_y if ball.y < min_y else max_y
+#         ball.vx = 0
+#         ball.vy = 0
+
+#     # Verifica se a bola saiu pelas linhas de fundo
+#     if ball.x < min_x or ball.x > max_x:
+#         print("Linha de Fundo!")
+#         saiu_pela_esquerda = ball.x < min_x
+#         if saiu_pela_esquerda:
+#             ball.x = field.margin + field.penalty_length / 2
+#         else:
+#             ball.x = field.screen_width - field.margin - field.penalty_length / 2
+#         ball.y = field.screen_height / 2
+#         ball.vx = 0
+#         ball.vy = 0
+
+#     # Lógica de posse de bola e último toque
+#     current_possession_id, current_possession_team_color = get_ball_possession(ball, robots)
+
+#     # Só imprime se a posse da bola mudou
+#     if (current_possession_id, current_possession_team_color) != previous_possession_info:
+#         if current_possession_id is not None:
+#             if current_possession_team_color == COLORS["BLUE"]:
+#                 print(f"Posse da bola: Time Azul, Robô ID: {current_possession_id}")
+#             elif current_possession_team_color == COLORS["RED"]:
+#                 print(f"Posse da bola: Time Vermelho, Robô ID: {current_possession_id}")
+#         else:
+#             print("Posse da bola: Livre")
+#         previous_possession_info = (current_possession_id, current_possession_team_color)
+
+#     # Limpa tela e desenha campo
+#     field.draw(screen)
+
+#     # Atualiza e desenha robôs
+#     for robo in robots:
+#         robo.draw(screen)
+#         # Exemplo de movimento para testar (apenas para robôs não controlados)
+#         if robo != controlled_robot:
+#             robo.move(vx=0, vy=0, vtheta=0.5)
+
+#         # Colisão com a bola
+#         if ball.check_collision(robo):
+#             ball.bounce_off(robo)
+
+#     # Atualiza a bola APÓS todas as possíveis colisões dos robôs
+#     ball.update()
+
+#     # Atualiza o último toque
+#     new_last_touch_info = update_last_touch(ball, robots, last_touch_info, goal_posts_info)
+#     # Só atualiza e imprime se o último toque mudou
+#     if new_last_touch_info != last_touch_info:
+#         last_touch_info = new_last_touch_info
+#         if last_touch_info[0] is not None:
+#             if last_touch_info[1] == COLORS["BLUE"]:
+#                 print(f"Último toque: Time Azul, Robô ID: {last_touch_info[0]}")
+#             elif last_touch_info[1] == COLORS["RED"]:
+#                 print(f"Último toque: Time Vermelho, Robô ID: {last_touch_info[0]}")
+#         else:
+#             print("Último toque: Nenhum (ou Trave)")
+
+#     goal_side = is_goal(ball, field)
+#     if goal_side:
+#         print(f"Gol do lado {goal_side}!")
+#         # Reposiciona a bola no centro
+#         ball.x = field.center_x
+#         ball.y = field.center_y
+#         ball.vx = 0
+#         ball.vy = 0
+#         # Resetar informações de posse e último toque após o gol
+#         previous_possession_info = (None, None)
+#         last_touch_info = (None, None)
+#         previous_last_touch_info = (None, None)
+
+
+#     # Desenha bola
+#     ball.draw(screen)
+
+#     pygame.display.flip()
+
+# pygame.quit()
