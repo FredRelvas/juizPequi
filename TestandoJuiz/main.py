@@ -3,7 +3,7 @@ from field import SSLRenderField
 from ball import Ball
 from robot import SSLRobot
 from utils import COLORS
-from game_logic import get_ball_possession, update_last_touch, is_goal, check_ball_out_of_play
+from game_logic import get_ball_possession, update_last_touch, is_goal, check_ball_out_of_play, check_ball_fundo
 
 # Inicialização do pygame
 pygame.init()
@@ -163,6 +163,12 @@ while running:
             previous_possession_info = (None, None) #
             last_touch_info = (None, None) #
             previous_last_touch_info = (None, None) #
+
+        ball_fundo = check_ball_fundo(ball, field, ball_bounds)
+        if ball_fundo:
+            previous_possession_info = (None, None) #
+            last_touch_info = (None, None) #
+            previous_last_touch_info = (None, None)
 
     # Desenha bola
     ball.draw(screen)

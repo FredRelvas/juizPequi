@@ -157,8 +157,17 @@ def check_ball_out_of_play(ball, field, ball_bounds):
         ball.vx = 0 #
         ball.vy = 0 #
         return True # Indica que a bola saiu de jogo
+    return False # A bola não saiu de jogo
 
+def check_ball_fundo(ball, field, ball_bounds):
+    min_x + 10, max_x - 10, min_y, max_y == ball_bounds
+    center_y = field.center_y
+    LADO_DIREITO = COLORS["BLUE"]
+    LADO_ESQUERDO = COLORS["RED"]
     # Verifica se a bola saiu pelas linhas de fundo (não sendo gol)
+
+    
+
     if ball.x < min_x or ball.x > max_x: #
         print("Linha de Fundo!") #
         # Reposiciona a bola para um escanteio ou tiro de meta (por enquanto, para o meio da área)
@@ -171,44 +180,4 @@ def check_ball_out_of_play(ball, field, ball_bounds):
         ball.vx = 0 #
         ball.vy = 0 #
         return True # Indica que a bola saiu de jogo
-
     return False # A bola não saiu de jogo
-
-
-# CÓDIGO ANTIGO:
-
-# def update_last_touch(ball, robots, current_last_touch_info, goal_posts_info, possession_radius_scale=1.5):
-#     """
-#     Atualiza a informação do último toque na bola.
-
-#     Args:
-#         ball (Ball): O objeto da bola.
-#         robots (list): Uma lista de objetos Robot.
-#         current_last_touch_info (tuple): (robot_id, team_color) do último tocador.
-#         goal_posts_info (dict): Informações sobre as traves (ex: {side: (x_min, x_max, y_min, y_max)})
-#                                 para detectar toque na trave.
-#         possession_radius_scale (float): Fator de escala para o raio de posse da bola.
-
-#     Returns:
-#         tuple: (robot_id, team_color) do novo último tocador.
-#     """
-#     # Verifica se a direção da bola mudou
-#     if check_ball_direction_change(ball):
-#         # Verifica se algum robô tem a posse no momento da mudança de direção
-#         # Usamos a posse da bola para determinar quem tocou
-#         robot_id, team_color = get_ball_possession(ball, robots, possession_radius_scale)
-        
-#         if robot_id is not None:
-#             # Um robô tocou na bola e mudou sua direção
-#             return robot_id, team_color
-#         else:
-#             # Se a direção mudou, mas nenhum robô tem a posse, pode ter sido a trave
-#             # Implemente a lógica de detecção de colisão com a trave aqui
-#             # Por simplicidade, vamos apenas retornar None, None se não for robô
-#             # Em um jogo real, você teria um método check_collision_with_goal_post(ball, goal_posts_info)
-#             # Para este exemplo, vamos supor que se a bola está perto de um gol e mudou de direção, pode ser a trave.
-#             # No momento, manteremos None, None para "trave" ou "ninguém identificado"
-#             return None, None # Se a bola mudou de direção e não tem posse, o último toque é "ninguém" ou trave
-    
-#     # Se a direção não mudou, o último tocador permanece o mesmo
-#     return current_last_touch_info
