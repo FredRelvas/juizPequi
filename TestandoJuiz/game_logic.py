@@ -1,6 +1,26 @@
 import math
 import numpy as np
 from utils import COLORS
+from field import SSLRenderField
+
+def is_goal(ball, field):
+    # Medidas já escaladas
+    goal_top = (field.screen_height - field.goal_width) / 2
+    goal_bottom = goal_top + field.goal_width
+
+    # Gol à esquerda
+    if field.margin - field.goal_depth <= ball.x <= field.margin:
+        if goal_top <= ball.y <= goal_bottom:
+            return "LEFT"
+
+    # Gol à direita
+    right_goal_x = field.screen_width - field.margin
+    if right_goal_x <= ball.x <= right_goal_x + field.goal_depth:
+        if goal_top <= ball.y <= goal_bottom:
+            return "RIGHT"
+
+    return None
+
 
 def get_ball_possession(ball, robots, possession_radius_scale=3):
     """
@@ -116,6 +136,43 @@ def update_last_touch(ball, robots, current_last_touch_info, goal_posts_info, po
     
     # 3. Se nada mudou, o último tocador permanece o mesmo
     return current_last_touch_info
+
+
+# Definindo variáveis e limites para função de lateral e linha de fundo
+field = SSLRenderField()
+scale = field.scale
+
+min_x = scale * SSLRenderField.margin
+max_x = field.screen_width - scale * SSLRenderField.margin
+min_y = scale * SSLRenderField.margin
+max_y = field.screen_height - scale * SSLRenderField.margin
+
+def check_ball_out_of_play(ball, field, ball_bounds):
+    min_x + 10, max_x - 10, min_y, max_y == ball_bounds #
+    
+    # Verifica se a bola saiu pelas laterais
+    if ball.y < min_y or ball.y > max_y: #
+        print("Lateral!") #
+        ball.y = min_y if ball.y < min_y else max_y #
+        ball.vx = 0 #
+        ball.vy = 0 #
+        return True # Indica que a bola saiu de jogo
+
+    # Verifica se a bola saiu pelas linhas de fundo (não sendo gol)
+    if ball.x < min_x or ball.x > max_x: #
+        print("Linha de Fundo!") #
+        # Reposiciona a bola para um escanteio ou tiro de meta (por enquanto, para o meio da área)
+        saiu_pela_esquerda = ball.x < min_x #
+        if saiu_pela_esquerda: #
+            ball.x = field.margin + field.penalty_length / 2 #
+        else: #
+            ball.x = field.screen_width - field.margin - field.penalty_length / 2 #
+        ball.y = field.screen_height / 2 #
+        ball.vx = 0 #
+        ball.vy = 0 #
+        return True # Indica que a bola saiu de jogo
+
+    return False # A bola não saiu de jogo
 
 
 # CÓDIGO ANTIGO:
