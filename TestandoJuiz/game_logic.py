@@ -159,25 +159,43 @@ def check_ball_out_of_play(ball, field, ball_bounds):
         return True # Indica que a bola saiu de jogo
     return False # A bola não saiu de jogo
 
-def check_ball_fundo(ball, field, ball_bounds):
+def check_ball_fundo(ball, field, ball_bounds, time_ult_toque):
     min_x + 10, max_x - 10, min_y, max_y == ball_bounds
     center_y = field.center_y
-    LADO_DIREITO = COLORS["BLUE"]
-    LADO_ESQUERDO = COLORS["RED"]
+    TIME_AZUL = COLORS["BLUE"]
+    TIME_RED = COLORS["RED"]
     # Verifica se a bola saiu pelas linhas de fundo (não sendo gol)
 
     
-
     if ball.x < min_x or ball.x > max_x: #
-        print("Linha de Fundo!") #
-        # Reposiciona a bola para um escanteio ou tiro de meta (por enquanto, para o meio da área)
-        saiu_pela_esquerda = ball.x < min_x #
-        if saiu_pela_esquerda: #
-            ball.x = field.margin + field.penalty_length / 2 #
-        else: #
-            ball.x = field.screen_width - field.margin - field.penalty_length / 2 #
-        ball.y = field.screen_height / 2 #
-        ball.vx = 0 #
-        ball.vy = 0 #
-        return True # Indica que a bola saiu de jogo
+        
+        if ball.x < min_x and ball.y > center_y:
+            print("Linha de Fundo ESQUERDA INFERIOR!")
+            
+        if ball.x < min_x and ball.y < center_y:
+            print("Linha de Fundo ESQUERDA SUPERIOR!")
+
+        # ESCANTEIO VERMELHO DIREITO EMBAIXO FUNCIONANDO!!!!!!!!!
+        if ball.x > max_x and ball.y > center_y and time_ult_toque == TIME_RED:
+            print("Linha de Fundo DIREITA INFERIOR!")
+            ball.y = field.screen_height #
+            ball.x = field.screen_width - field.margin
+            ball.vx = 0 #
+            ball.vy = 0 #
+
+
+        if ball.x > max_x and ball.y < center_y:
+            print("Linha de Fundo DIREITA SUPERIOR!")
+            
+            
+
+        # saiu_pela_esquerda = ball.x < min_x #
+        # if saiu_pela_esquerda: #
+        #     ball.x = field.margin + field.penalty_length / 2 #
+        # else: #
+        #     ball.x = field.screen_width - field.margin - field.penalty_length / 2 #
+        # ball.y = field.screen_height / 2 #
+        # ball.vx = 0 #
+        # ball.vy = 0 #
+        # return True # Indica que a bola saiu de jogo
     return False # A bola não saiu de jogo

@@ -44,7 +44,7 @@ robots += [
     SSLRobot(x=field.center_x + 1.5 * scale, y=field.center_y,         direction=180, scale=scale, id=1, team_color=COLORS["RED"]),
     SSLRobot(x=field.center_x + 1.5 * scale, y=field.center_y + scale, direction=180, scale=scale, id=2, team_color=COLORS["RED"]),
 ]
-controlled_robot = robots[1]  # Robô azul que será controlado com o teclado
+controlled_robot = robots[4]  # Robô azul que será controlado com o teclado
 # Velocidades de movimento
 speed = 1.5
 rotation_speed = 2
@@ -164,7 +164,7 @@ while running:
             last_touch_info = (None, None) #
             previous_last_touch_info = (None, None) #
 
-        ball_fundo = check_ball_fundo(ball, field, ball_bounds)
+        ball_fundo = check_ball_fundo(ball, field, ball_bounds, last_touch_info[1])
         if ball_fundo:
             previous_possession_info = (None, None) #
             last_touch_info = (None, None) #
